@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const BASE_URL = '/api';
-const WORKFLOW_BASE_URL = '/imprint';
+const WORKFLOW_BASE_URL = '/workflow-api';
 
 // Create axios instance with default config
 const apiClient = axios.create({
@@ -46,9 +46,16 @@ apiClient.interceptors.response.use(
 
 export const api = {
   // ===== CONDITION APIs =====
-  getAllConditions: async () => {
+  getAllConditions: async (token) => {
     try {
-      const response = await apiClient.get(`${BASE_URL}/getAllConditions`);
+      const response = await apiClient.get(
+        'http://10.10.10.27:8081/imprint/workflows/conditions',
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       return response.data.conditions || [];
     } catch (error) {
       console.error('Error fetching conditions:', error);
@@ -57,9 +64,16 @@ export const api = {
   },
 
   // ===== NODE DETAILS APIs =====
-  getNodeDetails: async () => {
+  getNodeDetails: async (token) => {
     try {
-      const response = await apiClient.get(`${BASE_URL}/getNodeDetails`);
+      const response = await apiClient.get(
+        'http://10.10.10.27:8081/imprint/workflows/nodes',
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       return {
         tasks: response.data.tasks || [],
         gateways: response.data.gateways || [],
@@ -72,30 +86,47 @@ export const api = {
   },
 
   // ===== WORKFLOW APIs =====
-  getAllWorkflows: async () => {
+  getAllWorkflows: async (companyId = 1, token) => {
     try {
-      const response = await apiClient.get(`${WORKFLOW_BASE_URL}/workflows/getAllWorkflows?companyId=1`, {
-        headers: {
-          'Authorization': 'Bearer 13704286-0663-48db-9b1a-69d5e3a1a87a'
+      debugger
+      const queryParams = new URLSearchParams(window.location.search);
+      const accessToken = queryParams.get("access_token");
+      const userId = queryParams.get("useId");
+      const companyId = queryParams.get("companyId");
+
+      const response = await apiClient.get(
+        `http://10.10.10.27:8081/imprint/workflows/getAllWorkflows?companyId=${companyId}`,
+        {
+          headers: {
+            // Authorization: `Bearer ${token}`,
+          //    'Content-Type': 'application/json',
+          // 'Authorization': 'Bearer 13704286-0663-48db-9b1a-69d5e3a1a87a'
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + accessToken
+            
+          },
         }
-      });
-      return response.data.workflowsList || [];
+      );
+       return response.data.workflowsList || [];
     } catch (error) {
       console.error('Error fetching workflows:', error);
       return [];
     }
   },
 
-  getWorkflowJson: async (workflowName) => {
+  getWorkflowJson: async (workflowId, token) => {
     try {
-      const response = await apiClient.get(`${WORKFLOW_BASE_URL}/workflows/json/${workflowName}`, {
-        headers: {
-          'Authorization': 'Bearer 13704286-0663-48db-9b1a-69d5e3a1a87a'
+      const response = await apiClient.get(
+        `http://10.10.10.27:8081/imprint/workflows/getWorkflowById/${workflowId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
-      });
+      );
       return response.data;
     } catch (error) {
-      console.error(`Error fetching workflow JSON for ${workflowName}:`, error);
+      console.error(`Error fetching workflow JSON for ID ${workflowId}:`, error);
       return null;
     }
   },
@@ -104,12 +135,7 @@ export const api = {
     try {
       console.log('Sending workflowData:', JSON.stringify(workflowData, null, 2));
       
-      const response = await apiClient.post(`${WORKFLOW_BASE_URL}/createWorkflow?companyId=1&userId=1770`, workflowData, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer 13704286-0663-48db-9b1a-69d5e3a1a87a'
-        }
-      });
+      const response = await apiClient.post(`${WORKFLOW_BASE_URL}/generateBPMN`, workflowData);
       
       // Handle both JSON and text responses
       let result;
@@ -167,9 +193,54 @@ export const api = {
     }
   },
 
-  updateWorkflow: async (workflowId, workflowData) => {
+  createWorkflow: async (workflowData, companyId = 1, userId, token) => {
     try {
-      const response = await apiClient.put(`${WORKFLOW_BASE_URL}/update/${workflowId}`, workflowData);
+      const response = await apiClient.post(
+        `http://10.10.10.27:8081/imprint/workflows/createWorkflow?companyId=${companyId}&userId=${userId}`,
+        workflowData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      return {
+        success: true,
+        data: response.data,
+        message: 'Workflow created successfully!'
+      };
+    } catch (error) {
+      console.error('Error creating workflow:', error);
+      let errorMessage = 'Error creating workflow';
+      if (axios.isAxiosError(error)) {
+        errorMessage += `: ${error.response?.status} ${error.response?.statusText}`;
+        if (error.response?.data) {
+          errorMessage += ` - ${typeof error.response.data === 'string' ? error.response.data : JSON.stringify(error.response.data)}`;
+        }
+      } else {
+        errorMessage += `: ${error.message}`;
+      }
+      return {
+        success: false,
+        error: errorMessage,
+        message: errorMessage
+      };
+    }
+  },
+
+  updateWorkflow: async (workflowId, workflowData, companyId = 1, userId, token) => {
+    try {
+      const response = await apiClient.put(
+        `http://10.10.10.27:8081/imprint/workflows/updateWorkflow/${workflowId}?companyId=${companyId}&userId=${userId}`,
+        workflowData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       return {
         success: true,
         data: response.data,
@@ -177,17 +248,33 @@ export const api = {
       };
     } catch (error) {
       console.error('Error updating workflow:', error);
+      let errorMessage = 'Error updating workflow';
+      if (axios.isAxiosError(error)) {
+        errorMessage += `: ${error.response?.status} ${error.response?.statusText}`;
+        if (error.response?.data) {
+          errorMessage += ` - ${typeof error.response.data === 'string' ? error.response.data : JSON.stringify(error.response.data)}`;
+        }
+      } else {
+        errorMessage += `: ${error.message}`;
+      }
       return {
         success: false,
-        error: error.message,
-        message: 'Failed to update workflow'
+        error: errorMessage,
+        message: errorMessage
       };
     }
   },
 
-  deleteWorkflow: async (workflowId) => {
+  deleteWorkflow: async (workflowId, companyId = 1, userId, token) => {
     try {
-      const response = await apiClient.delete(`${WORKFLOW_BASE_URL}/delete/${workflowId}`);
+      const response = await apiClient.delete(
+        `http://10.10.10.27:8081/imprint/workflows/deleteWorkflow/${workflowId}?companyId=${companyId}&userId=${userId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       return {
         success: true,
         data: response.data,
@@ -195,10 +282,19 @@ export const api = {
       };
     } catch (error) {
       console.error('Error deleting workflow:', error);
+      let errorMessage = 'Error deleting workflow';
+      if (axios.isAxiosError(error)) {
+        errorMessage += `: ${error.response?.status} ${error.response?.statusText}`;
+        if (error.response?.data) {
+          errorMessage += ` - ${typeof error.response.data === 'string' ? error.response.data : JSON.stringify(error.response.data)}`;
+        }
+      } else {
+        errorMessage += `: ${error.message}`;
+      }
       return {
         success: false,
-        error: error.message,
-        message: 'Failed to delete workflow'
+        error: errorMessage,
+        message: errorMessage
       };
     }
   },

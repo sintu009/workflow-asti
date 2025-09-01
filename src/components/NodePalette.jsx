@@ -159,19 +159,20 @@ const NodePalette = ({ onDragStart, onWorkflowSelect }) => {
         <div className="space-y-1 max-h-48 overflow-y-auto">
           {workflows.map((name) => (
             <div
-              key={name}
-              onClick={() => handleWorkflowClick(name)}
+              key={workflow.workflowId}
+              onClick={() => handleWorkflowClick(workflow.workflowName)}
               className={`group cursor-pointer px-4 py-3 border-2 transition-all duration-200 ${
-                selectedWorkflow === name 
+                selectedWorkflow === workflow.workflowName 
                   ? "bg-blue-100 border-blue-300 text-blue-900" 
                   : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300"
               }`}
             >
               <div className="flex items-center gap-2">
-                <Workflow className={`w-3 h-3 ${selectedWorkflow === name ? 'text-blue-600' : 'text-slate-500'}`} />
+                <Workflow className={`w-3 h-3 ${selectedWorkflow === workflow.workflowName ? 'text-blue-600' : 'text-slate-500'}`} />
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-medium truncate">{name}</div>
-                  {selectedWorkflow === name && (
+                  <div className="text-xs font-medium truncate">{workflow.workflowName}</div>
+                  <div className="text-xs text-slate-500">ID: {workflow.workflowId}</div>
+                  {selectedWorkflow === workflow.workflowName && (
                     <div className="text-xs text-blue-600 mt-1">Selected</div>
                   )}
                 </div>

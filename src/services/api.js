@@ -74,8 +74,12 @@ export const api = {
   // ===== WORKFLOW APIs =====
   getAllWorkflows: async () => {
     try {
-      const response = await apiClient.get(`${WORKFLOW_BASE_URL}/all-workflows`);
-      return response.data || [];
+      const response = await apiClient.get(`${WORKFLOW_BASE_URL}/workflows/getAllWorkflows?companyId=1`, {
+        headers: {
+          'Authorization': 'Bearer 13704286-0663-48db-9b1a-69d5e3a1a87a'
+        }
+      });
+      return response.data.workflowsList || [];
     } catch (error) {
       console.error('Error fetching workflows:', error);
       return [];
@@ -84,7 +88,11 @@ export const api = {
 
   getWorkflowJson: async (workflowName) => {
     try {
-      const response = await apiClient.get(`${WORKFLOW_BASE_URL}/json/${workflowName}`);
+      const response = await apiClient.get(`${WORKFLOW_BASE_URL}/workflows/json/${workflowName}`, {
+        headers: {
+          'Authorization': 'Bearer 13704286-0663-48db-9b1a-69d5e3a1a87a'
+        }
+      });
       return response.data;
     } catch (error) {
       console.error(`Error fetching workflow JSON for ${workflowName}:`, error);

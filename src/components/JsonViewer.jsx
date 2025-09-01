@@ -37,7 +37,6 @@ const JsonViewer = ({ nodes, edges, currentWorkflowName = '', isModified = false
         }),
         ...(node.data.event && Object.keys(node.data.event).length > 0 && {
           event: {
-            eventType: node.data.event.eventType,
             eventType: node.data.event.type,
             eventName: node.data.event.eventName,
             timeDuration: node.data.event.timeDuration

@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const BASE_URL = '/api';
-const WORKFLOW_BASE_URL = '/workflow-api';
+const WORKFLOW_BASE_URL = '/imprint';
 
 // Create axios instance with default config
 const apiClient = axios.create({
@@ -96,7 +96,12 @@ export const api = {
     try {
       console.log('Sending workflowData:', JSON.stringify(workflowData, null, 2));
       
-      const response = await apiClient.post(`${WORKFLOW_BASE_URL}/generateBPMN`, workflowData);
+      const response = await apiClient.post(`${WORKFLOW_BASE_URL}/createWorkflow?companyId=1&userId=1770`, workflowData, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer 13704286-0663-48db-9b1a-69d5e3a1a87a'
+        }
+      });
       
       // Handle both JSON and text responses
       let result;

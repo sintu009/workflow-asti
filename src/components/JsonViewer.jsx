@@ -3,7 +3,6 @@ import { Code, Save, AlertCircle, CheckCircle, Settings } from 'lucide-react';
 import { api } from '../services/api';
 
 const JsonViewer = ({ nodes, edges, currentWorkflowName = '', isModified = false }) => {
-  const [clientId, setClientId] = useState('client61');
   const [workflowName, setWorkflowName] = useState(currentWorkflowName);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -15,7 +14,6 @@ const JsonViewer = ({ nodes, edges, currentWorkflowName = '', isModified = false
   }, [currentWorkflowName, workflowName]);
 
   const workflowData = {
-    clientId,
     workflowName,
     nodes: nodes.map(node => ({
       id: node.id,
@@ -60,8 +58,8 @@ const JsonViewer = ({ nodes, edges, currentWorkflowName = '', isModified = false
 
   const handleSave = async () => {
     try {
-      if (!clientId || !workflowName) {
-        alert('Client ID and Workflow Name are required.');
+      if (!workflowName) {
+        alert('Workflow Name is required.');
         return;
       }
 

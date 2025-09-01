@@ -106,20 +106,6 @@ const JsonViewer = ({ nodes, edges, currentWorkflowName = '', isModified = false
         </div>
         
         <div>
-          <label htmlFor="clientId" className="block text-xs font-semibold text-slate-700 mb-2">
-            Client ID
-          </label>
-          <input
-            type="text"
-            id="clientId"
-            value={clientId}
-            onChange={(e) => setClientId(e.target.value)}
-            className="w-full p-2 border-2 border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-xs"
-            placeholder="Enter client ID"
-          />
-        </div>
-        
-        <div>
           <label htmlFor="workflowName" className="block text-xs font-semibold text-slate-700 mb-2">
             Workflow Name
           </label>

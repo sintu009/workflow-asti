@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { api } from "../services/api";
+import { getAuthFromStorage } from "../utils/auth";
 import { X, Save, Trash2, Settings, Tag, Clock, Type } from "lucide-react";
 
 const PropertiesPanel = ({ selectedNode, onNodeUpdate, onClose }) => {
@@ -33,6 +34,13 @@ const PropertiesPanel = ({ selectedNode, onNodeUpdate, onClose }) => {
 
   const fetchData = async () => {
     try {
+      const auth = getAuthFromStorage();
+      
+      if (!auth.accessToken) {
+        console.log('No authentication token available');
+        return;
+      }
+      
       const [nodeDetails, conditionsData] = await Promise.all([
         api.getNodeDetails(),
         api.getAllConditions(),

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { getBezierPath } from '@xyflow/react';
 import { Plus, Settings, X, Check } from 'lucide-react';
 import { api } from '../services/api';
+import { getAuthFromStorage } from '../utils/auth';
 
 const ConditionEdge = ({
   id,
@@ -48,6 +49,13 @@ const ConditionEdge = ({
 
   const fetchConditions = async () => {
     try {
+      const auth = getAuthFromStorage();
+      
+      if (!auth.accessToken) {
+        console.log('No authentication token available');
+        return;
+      }
+      
       const conditionsData = await api.getAllConditions();
       setConditions(conditionsData || []);
       setError(null);

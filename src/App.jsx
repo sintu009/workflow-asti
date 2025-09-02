@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { getAuthFromUrl, saveAuthToStorage, getAuthFromStorage, isAuthenticated } from './utils/auth';
 import LoginPage from './components/LoginPage';
 import {
   ReactFlow,
@@ -418,6 +419,34 @@ function WorkflowBuilder() {
 function App() {
   const [user, setUser] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
+  const [authData, setAuthData] = useState(null);
+
+  // Initialize authentication on app load
+  useEffect(() => {
+    // First check URL parameters
+    const urlAuth = getAuthFromUrl();
+    if (urlAuth.accessToken && urlAuth.userId && urlAuth.companyId) {
+      // Save to localStorage and set as authenticated
+      saveAuthToStorage(urlAuth);
+      setAuthData(urlAuth);
+      setUser({
+        isAuthenticated: true,
+        userId: urlAuth.userId,
+        companyId: urlAuth.companyId
+      });
+    } else {
+      // Check localStorage for existing auth
+      const storedAuth = getAuthFromStorage();
+      if (isAuthenticated()) {
+        setAuthData(storedAuth);
+        setUser({
+          isAuthenticated: true,
+          userId: storedAuth.userId,
+          companyId: storedAuth.companyId
+        });
+      }
+    }
+  }, []);
 
   const handleLogin = (userData) => {
     setUser(userData);
@@ -425,6 +454,10 @@ function App() {
   };
 
   const handleLogout = () => {
+    // Clear authentication data
+    const { clearAuthFromStorage } = require('./utils/auth');
+    clearAuthFromStorage();
+    setAuthData(null);
     setUser(null);
     setShowLogin(false);
   };
@@ -460,7 +493,7 @@ function App() {
                   <div className="flex items-center gap-3 px-4 py-2 bg-slate-50 border-2 border-slate-300">
                     <User className="w-4 h-4 text-slate-600" />
                     <span className="text-sm font-medium text-slate-700">
-                      Welcome, {user.username}
+                      Welcome, User {user.userId}
                     </span>
                   </div>
                   <button

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getAuthFromStorage } from '../utils/auth';
 
 const BASE_URL = '/api';
 const WORKFLOW_BASE_URL = '/workflow-api';
@@ -48,11 +49,12 @@ export const api = {
   // ===== CONDITION APIs =====
   getAllConditions: async (token) => {
     try {
+      const auth = getAuthFromStorage();
       const response = await apiClient.get(
         'http://10.10.10.27:8081/imprint/workflows/conditions',
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${auth.accessToken}`,
           },
         }
       );
@@ -66,11 +68,12 @@ export const api = {
   // ===== NODE DETAILS APIs =====
   getNodeDetails: async (token) => {
     try {
+      const auth = getAuthFromStorage();
       const response = await apiClient.get(
         'http://10.10.10.27:8081/imprint/workflows/nodes',
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${auth.accessToken}`,
           },
         }
       );
@@ -86,24 +89,16 @@ export const api = {
   },
 
   // ===== WORKFLOW APIs =====
-  getAllWorkflows: async (companyId = 1, token) => {
+  getAllWorkflows: async () => {
     try {
-      debugger
-      const queryParams = new URLSearchParams(window.location.search);
-      const accessToken = queryParams.get("access_token");
-      const userId = queryParams.get("useId");
-      const companyId = queryParams.get("companyId");
+      const auth = getAuthFromStorage();
 
       const response = await apiClient.get(
-        `http://10.10.10.27:8081/imprint/workflows/getAllWorkflows?companyId=${companyId}`,
+        `http://10.10.10.27:8081/imprint/workflows/getAllWorkflows?companyId=${auth.companyId}`,
         {
           headers: {
-            // Authorization: `Bearer ${token}`,
-          //    'Content-Type': 'application/json',
-          // 'Authorization': 'Bearer 13704286-0663-48db-9b1a-69d5e3a1a87a'
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + accessToken
-            
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${auth.accessToken}`
           },
         }
       );
@@ -116,11 +111,12 @@ export const api = {
 
   getWorkflowJson: async (workflowId, token) => {
     try {
+      const auth = getAuthFromStorage();
       const response = await apiClient.get(
         `http://10.10.10.27:8081/imprint/workflows/getWorkflowById/${workflowId}`,
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${auth.accessToken}`,
           },
         }
       );
@@ -131,11 +127,21 @@ export const api = {
     }
   },
 
-  generateBPMN: async (workflowData) => {
+  createWorkflow: async (workflowData) => {
     try {
+      const auth = getAuthFromStorage();
       console.log('Sending workflowData:', JSON.stringify(workflowData, null, 2));
       
-      const response = await apiClient.post(`${WORKFLOW_BASE_URL}/generateBPMN`, workflowData);
+      const response = await apiClient.post(
+        `http://10.10.10.27:8081/imprint/workflows/createWorkflow?companyId=${auth.companyId}&userId=${auth.userId}`,
+        workflowData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${auth.accessToken}`,
+          },
+        }
+      );
       
       // Handle both JSON and text responses
       let result;
@@ -152,12 +158,12 @@ export const api = {
       return {
         success: true,
         data: result,
-        message: 'Workflow successfully generated!'
+        message: 'Workflow created successfully!'
       };
     } catch (error) {
-      console.error('Error saving workflow:', error);
+      console.error('Error creating workflow:', error);
       
-      let errorMessage = 'Error saving workflow';
+      let errorMessage = 'Error creating workflow';
       if (axios.isAxiosError(error)) {
         errorMessage += `: ${error.response?.status} ${error.response?.statusText}`;
         if (error.response?.data) {
@@ -193,51 +199,16 @@ export const api = {
     }
   },
 
-  createWorkflow: async (workflowData, companyId = 1, userId, token) => {
+  updateWorkflow: async (workflowId, workflowData) => {
     try {
+      const auth = getAuthFromStorage();
       const response = await apiClient.post(
-        `http://10.10.10.27:8081/imprint/workflows/createWorkflow?companyId=${companyId}&userId=${userId}`,
+        `http://10.10.10.27:8081/imprint/workflows/updateWorkflow/${workflowId}?companyId=${auth.companyId}&userId=${auth.userId}`,
         workflowData,
         {
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      return {
-        success: true,
-        data: response.data,
-        message: 'Workflow created successfully!'
-      };
-    } catch (error) {
-      console.error('Error creating workflow:', error);
-      let errorMessage = 'Error creating workflow';
-      if (axios.isAxiosError(error)) {
-        errorMessage += `: ${error.response?.status} ${error.response?.statusText}`;
-        if (error.response?.data) {
-          errorMessage += ` - ${typeof error.response.data === 'string' ? error.response.data : JSON.stringify(error.response.data)}`;
-        }
-      } else {
-        errorMessage += `: ${error.message}`;
-      }
-      return {
-        success: false,
-        error: errorMessage,
-        message: errorMessage
-      };
-    }
-  },
-
-  updateWorkflow: async (workflowId, workflowData, companyId = 1, userId, token) => {
-    try {
-      const response = await apiClient.put(
-        `http://10.10.10.27:8081/imprint/workflows/updateWorkflow/${workflowId}?companyId=${companyId}&userId=${userId}`,
-        workflowData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
+            'Authorization': `Bearer ${auth.accessToken}`,
           },
         }
       );
@@ -265,13 +236,14 @@ export const api = {
     }
   },
 
-  deleteWorkflow: async (workflowId, companyId = 1, userId, token) => {
+  deleteWorkflow: async (workflowId) => {
     try {
+      const auth = getAuthFromStorage();
       const response = await apiClient.delete(
-        `http://10.10.10.27:8081/imprint/workflows/deleteWorkflow/${workflowId}?companyId=${companyId}&userId=${userId}`,
+        `http://10.10.10.27:8081/imprint/workflows/deleteWorkflow/${workflowId}?companyId=${auth.companyId}&userId=${auth.userId}`,
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            'Authorization': `Bearer ${auth.accessToken}`,
           },
         }
       );

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Code, Save, AlertCircle, CheckCircle, Settings } from 'lucide-react';
 import { api } from '../services/api';
+import { getAuthFromStorage } from '../utils/auth';
 
 const JsonViewer = ({ nodes, edges, currentWorkflowName = '', isModified = false }) => {
   const [workflowName, setWorkflowName] = useState(currentWorkflowName);
@@ -57,6 +58,13 @@ const JsonViewer = ({ nodes, edges, currentWorkflowName = '', isModified = false
 
   const handleSave = async () => {
     try {
+      const auth = getAuthFromStorage();
+      
+      if (!auth.accessToken || !auth.userId || !auth.companyId) {
+        alert('Authentication required. Please login again.');
+        return;
+      }
+      
       if (!workflowName) {
         alert('Workflow Name is required.');
         return;
@@ -64,7 +72,7 @@ const JsonViewer = ({ nodes, edges, currentWorkflowName = '', isModified = false
 
       setIsSaving(true);
       
-      const result = await api.generateBPMN(workflowData);
+      const result = await api.createWorkflow(workflowData);
       
       if (result.success) {
         alert(result.message);

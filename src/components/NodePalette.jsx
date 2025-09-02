@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Square, Diamond, Circle, Workflow, RefreshCw, Trash2, FolderOpen } from "lucide-react";
 import { api } from "../services/api";
+import { getAuthFromStorage } from "../utils/auth";
 
 const NodePalette = ({ onDragStart, onWorkflowSelect }) => {
   const [workflows, setWorkflows] = useState([]);
@@ -10,6 +11,13 @@ const NodePalette = ({ onDragStart, onWorkflowSelect }) => {
 
   useEffect(() => {
     const fetchWorkflows = async () => {
+      const auth = getAuthFromStorage();
+      
+      if (!auth.accessToken || !auth.companyId) {
+        console.log('No authentication data available');
+        return;
+      }
+      
       setIsLoading(true);
       const data = await api.getAllWorkflows();
       setWorkflows(data);
@@ -19,7 +27,7 @@ const NodePalette = ({ onDragStart, onWorkflowSelect }) => {
   }, []);
 
   const handleWorkflowClick = async (workflowName) => {
-    if (selectedWorkflow === workflowName) {
+    if (selectedWorkflow?.workflowId === workflow.workflowId) {
       // If clicking the same workflow, deselect it
       setSelectedWorkflow(null);
       setWorkflowJson(null);
@@ -29,13 +37,21 @@ const NodePalette = ({ onDragStart, onWorkflowSelect }) => {
       return;
     }
 
+    const auth = getAuthFromStorage();
+    
+    if (!auth.accessToken) {
+      console.log('No authentication token available');
+      return;
+    }
+    
     setIsLoading(true);
-    setSelectedWorkflow(workflowName);
-    const data = await api.getWorkflowJson(workflowName);
+    setSelectedWorkflow(workflow);
+    const data = await api.getWorkflowJson(workflow.workflowId);
     
     // Add workflow name to the data if it's missing
-    if (data && !data.workflowName) {
-      data.workflowName = workflowName;
+    if (data) {
+      data.workflowName = workflow.workflowName;
+      data.workflowId = workflow.workflowId;
     }
     
     setWorkflowJson(data);
@@ -162,17 +178,17 @@ const NodePalette = ({ onDragStart, onWorkflowSelect }) => {
               key={workflow.workflowId}
               onClick={() => handleWorkflowClick(workflow.workflowName)}
               className={`group cursor-pointer px-4 py-3 border-2 transition-all duration-200 ${
-                selectedWorkflow === workflow.workflowName 
+                selectedWorkflow?.workflowId === workflow.workflowId 
                   ? "bg-blue-100 border-blue-300 text-blue-900" 
                   : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300"
               }`}
             >
               <div className="flex items-center gap-2">
-                <Workflow className={`w-3 h-3 ${selectedWorkflow === workflow.workflowName ? 'text-blue-600' : 'text-slate-500'}`} />
+                <Workflow className={`w-3 h-3 ${selectedWorkflow?.workflowId === workflow.workflowId ? 'text-blue-600' : 'text-slate-500'}`} />
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-medium truncate">{workflow.workflowName}</div>
                   <div className="text-xs text-slate-500">ID: {workflow.workflowId}</div>
-                  {selectedWorkflow === workflow.workflowName && (
+                  {selectedWorkflow?.workflowId === workflow.workflowId && (
                     <div className="text-xs text-blue-600 mt-1">Selected</div>
                   )}
                 </div>
@@ -196,7 +212,7 @@ const NodePalette = ({ onDragStart, onWorkflowSelect }) => {
             <div className="flex items-center justify-between mb-3">
               <h5 className="text-xs font-semibold text-slate-700">Preview</h5>
               <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 border border-slate-300">
-                {selectedWorkflow}
+                {selectedWorkflow?.workflowName}
               </span>
             </div>
             <div className="max-h-24 overflow-y-auto">

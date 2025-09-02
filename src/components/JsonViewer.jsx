@@ -59,29 +59,37 @@ const JsonViewer = ({ nodes, edges, currentWorkflowName = '', isModified = false
   const handleSave = async () => {
     try {
       const auth = getAuthFromStorage();
+      console.log('Save attempt with auth:', auth);
       
-      if (!auth.accessToken || !auth.userId || !auth.companyId) {
-        alert('Authentication required. Please login again.');
+      if (!auth.accessToken || !auth.useId || !auth.companyId) {
+        const missingFields = [];
+        if (!auth.accessToken) missingFields.push('access token');
+        if (!auth.useId) missingFields.push('user ID');
+        if (!auth.companyId) missingFields.push('company ID');
+        
+        alert(`Authentication required. Missing: ${missingFields.join(', ')}. Please login again.`);
         return;
       }
       
       if (!workflowName) {
-        alert('Workflow Name is required.');
+        alert('Workflow name is required.');
         return;
       }
 
+      console.log('Saving workflow:', workflowData);
       setIsSaving(true);
       
       const result = await api.createWorkflow(workflowData);
+      console.log('Save result:', result);
       
       if (result.success) {
-        alert(result.message);
+        alert(`Success: ${result.message}`);
       } else {
-        alert(result.message);
+        alert(`Error: ${result.message}`);
       }
     } catch (error) {
       console.error('Error saving workflow:', error);
-      alert('Error saving workflow: ' + error.message);
+      alert(`Unexpected error: ${error.message}`);
     } finally {
       setIsSaving(false);
     }

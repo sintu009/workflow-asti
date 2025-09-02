@@ -35,9 +35,10 @@ const PropertiesPanel = ({ selectedNode, onNodeUpdate, onClose }) => {
   const fetchData = async () => {
     try {
       const auth = getAuthFromStorage();
+      console.log('Fetching node data with auth:', auth);
       
       if (!auth.accessToken) {
-        console.log('No authentication token available');
+        console.error('No authentication token available for fetching node data');
         return;
       }
       
@@ -45,6 +46,9 @@ const PropertiesPanel = ({ selectedNode, onNodeUpdate, onClose }) => {
         api.getNodeDetails(),
         api.getAllConditions(),
       ]);
+
+      console.log('Fetched node details:', nodeDetails);
+      console.log('Fetched conditions:', conditionsData);
 
       setTasks(nodeDetails.tasks);
       setGateways(nodeDetails.gateways);

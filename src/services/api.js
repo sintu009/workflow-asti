@@ -1,9 +1,6 @@
 import axios from 'axios';
 import { getAuthFromStorage } from '../utils/auth';
 
-const BASE_URL = '/api';
-const WORKFLOW_BASE_URL = '/workflow-api';
-
 // Create axios instance with default config
 const apiClient = axios.create({
   timeout: 10000,
@@ -47,17 +44,24 @@ apiClient.interceptors.response.use(
 
 export const api = {
   // ===== CONDITION APIs =====
-  getAllConditions: async (token) => {
+  getAllConditions: async () => {
     try {
       const auth = getAuthFromStorage();
+      
+      if (!auth.accessToken || !auth.companyId) {
+        console.error('Missing authentication data for conditions');
+        return [];
+      }
+
       const response = await apiClient.get(
-        'http://10.10.10.27:8081/imprint/workflows/conditions',
+        `http://10.10.10.27:8081/imprint/workflows/getAllConditions?companyId=${auth.companyId}`,
         {
           headers: {
             Authorization: `Bearer ${auth.accessToken}`,
           },
         }
       );
+      
       return response.data.conditions || [];
     } catch (error) {
       console.error('Error fetching conditions:', error);
@@ -66,9 +70,15 @@ export const api = {
   },
 
   // ===== NODE DETAILS APIs =====
-  getNodeDetails: async (token) => {
+  getNodeDetails: async () => {
     try {
       const auth = getAuthFromStorage();
+      
+      if (!auth.accessToken) {
+        console.error('Missing authentication data for node details');
+        return { tasks: [], gateways: [], events: [] };
+      }
+
       const response = await apiClient.get(
         'http://10.10.10.27:8081/imprint/workflows/nodes',
         {
@@ -77,6 +87,7 @@ export const api = {
           },
         }
       );
+      
       return {
         tasks: response.data.tasks || [],
         gateways: response.data.gateways || [],
@@ -93,6 +104,11 @@ export const api = {
     try {
       const auth = getAuthFromStorage();
 
+      if (!auth.accessToken || !auth.companyId) {
+        console.error('Missing authentication data for workflows');
+        return [];
+      }
+
       const response = await apiClient.get(
         `http://10.10.10.27:8081/imprint/workflows/getAllWorkflows?companyId=${auth.companyId}`,
         {
@@ -102,16 +118,24 @@ export const api = {
           },
         }
       );
-       return response.data.workflowsList || [];
+      
+      console.log('Workflows API response:', response.data);
+      return response.data.workflowsList || [];
     } catch (error) {
       console.error('Error fetching workflows:', error);
       return [];
     }
   },
 
-  getWorkflowJson: async (workflowId, token) => {
+  getWorkflowJson: async (workflowId) => {
     try {
       const auth = getAuthFromStorage();
+      
+      if (!auth.accessToken || !workflowId) {
+        console.error('Missing authentication data or workflow ID');
+        return null;
+      }
+
       const response = await apiClient.get(
         `http://10.10.10.27:8081/imprint/workflows/getWorkflowById/${workflowId}`,
         {
@@ -120,6 +144,8 @@ export const api = {
           },
         }
       );
+      
+      console.log('Workflow JSON response:', response.data);
       return response.data;
     } catch (error) {
       console.error(`Error fetching workflow JSON for ID ${workflowId}:`, error);
@@ -130,7 +156,12 @@ export const api = {
   createWorkflow: async (workflowData) => {
     try {
       const auth = getAuthFromStorage();
-      console.log('Sending workflowData:', JSON.stringify(workflowData, null, 2));
+      
+      if (!auth.accessToken || !auth.companyId || !auth.userId) {
+        throw new Error('Missing authentication data. Please login again.');
+      }
+
+      console.log('Creating workflow with data:', JSON.stringify(workflowData, null, 2));
       
       const response = await apiClient.post(
         `http://10.10.10.27:8081/imprint/workflows/createWorkflow?companyId=${auth.companyId}&userId=${auth.userId}`,
@@ -143,21 +174,11 @@ export const api = {
         }
       );
       
-      // Handle both JSON and text responses
-      let result;
-      const responseText = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
-      
-      try {
-        result = typeof response.data === 'object' ? response.data : JSON.parse(responseText);
-        console.log('API response:', result);
-      } catch (jsonErr) {
-        console.log('Non-JSON API response:', responseText);
-        result = { message: responseText };
-      }
+      console.log('Create workflow response:', response.data);
       
       return {
         success: true,
-        data: result,
+        data: response.data,
         message: 'Workflow created successfully!'
       };
     } catch (error) {
@@ -165,9 +186,18 @@ export const api = {
       
       let errorMessage = 'Error creating workflow';
       if (axios.isAxiosError(error)) {
-        errorMessage += `: ${error.response?.status} ${error.response?.statusText}`;
-        if (error.response?.data) {
-          errorMessage += ` - ${typeof error.response.data === 'string' ? error.response.data : JSON.stringify(error.response.data)}`;
+        if (error.response?.status === 401) {
+          errorMessage = 'Authentication failed. Please login again.';
+        } else if (error.response?.status === 403) {
+          errorMessage = 'Access denied. Check your permissions.';
+        } else {
+          errorMessage += `: ${error.response?.status} ${error.response?.statusText}`;
+          if (error.response?.data) {
+            const responseData = typeof error.response.data === 'string' 
+              ? error.response.data 
+              : JSON.stringify(error.response.data);
+            errorMessage += ` - ${responseData}`;
+          }
         }
       } else {
         errorMessage += `: ${error.message}`;
@@ -181,27 +211,14 @@ export const api = {
     }
   },
 
-  saveWorkflow: async (workflowData) => {
-    try {
-      const response = await apiClient.post(`${WORKFLOW_BASE_URL}/save`, workflowData);
-      return {
-        success: true,
-        data: response.data,
-        message: 'Workflow saved successfully!'
-      };
-    } catch (error) {
-      console.error('Error saving workflow:', error);
-      return {
-        success: false,
-        error: error.message,
-        message: 'Failed to save workflow'
-      };
-    }
-  },
-
   updateWorkflow: async (workflowId, workflowData) => {
     try {
       const auth = getAuthFromStorage();
+      
+      if (!auth.accessToken || !auth.companyId || !auth.userId) {
+        throw new Error('Missing authentication data. Please login again.');
+      }
+
       const response = await apiClient.post(
         `http://10.10.10.27:8081/imprint/workflows/updateWorkflow/${workflowId}?companyId=${auth.companyId}&userId=${auth.userId}`,
         workflowData,
@@ -212,6 +229,7 @@ export const api = {
           },
         }
       );
+      
       return {
         success: true,
         data: response.data,
@@ -219,15 +237,26 @@ export const api = {
       };
     } catch (error) {
       console.error('Error updating workflow:', error);
+      
       let errorMessage = 'Error updating workflow';
       if (axios.isAxiosError(error)) {
-        errorMessage += `: ${error.response?.status} ${error.response?.statusText}`;
-        if (error.response?.data) {
-          errorMessage += ` - ${typeof error.response.data === 'string' ? error.response.data : JSON.stringify(error.response.data)}`;
+        if (error.response?.status === 401) {
+          errorMessage = 'Authentication failed. Please login again.';
+        } else if (error.response?.status === 403) {
+          errorMessage = 'Access denied. Check your permissions.';
+        } else {
+          errorMessage += `: ${error.response?.status} ${error.response?.statusText}`;
+          if (error.response?.data) {
+            const responseData = typeof error.response.data === 'string' 
+              ? error.response.data 
+              : JSON.stringify(error.response.data);
+            errorMessage += ` - ${responseData}`;
+          }
         }
       } else {
         errorMessage += `: ${error.message}`;
       }
+      
       return {
         success: false,
         error: errorMessage,
@@ -239,6 +268,11 @@ export const api = {
   deleteWorkflow: async (workflowId) => {
     try {
       const auth = getAuthFromStorage();
+      
+      if (!auth.accessToken || !auth.companyId || !auth.userId) {
+        throw new Error('Missing authentication data. Please login again.');
+      }
+
       const response = await apiClient.delete(
         `http://10.10.10.27:8081/imprint/workflows/deleteWorkflow/${workflowId}?companyId=${auth.companyId}&userId=${auth.userId}`,
         {
@@ -247,6 +281,7 @@ export const api = {
           },
         }
       );
+      
       return {
         success: true,
         data: response.data,
@@ -254,15 +289,26 @@ export const api = {
       };
     } catch (error) {
       console.error('Error deleting workflow:', error);
+      
       let errorMessage = 'Error deleting workflow';
       if (axios.isAxiosError(error)) {
-        errorMessage += `: ${error.response?.status} ${error.response?.statusText}`;
-        if (error.response?.data) {
-          errorMessage += ` - ${typeof error.response.data === 'string' ? error.response.data : JSON.stringify(error.response.data)}`;
+        if (error.response?.status === 401) {
+          errorMessage = 'Authentication failed. Please login again.';
+        } else if (error.response?.status === 403) {
+          errorMessage = 'Access denied. Check your permissions.';
+        } else {
+          errorMessage += `: ${error.response?.status} ${error.response?.statusText}`;
+          if (error.response?.data) {
+            const responseData = typeof error.response.data === 'string' 
+              ? error.response.data 
+              : JSON.stringify(error.response.data);
+            errorMessage += ` - ${responseData}`;
+          }
         }
       } else {
         errorMessage += `: ${error.message}`;
       }
+      
       return {
         success: false,
         error: errorMessage,
@@ -326,73 +372,24 @@ export const api = {
     }
   },
 
-  // ===== UTILITY APIs =====
-  validateWorkflow: async (workflowData) => {
-    try {
-      const response = await apiClient.post(`${WORKFLOW_BASE_URL}/validate`, workflowData);
-      return {
-        success: true,
-        data: response.data,
-        message: 'Workflow validation completed'
-      };
-    } catch (error) {
-      console.error('Error validating workflow:', error);
-      return {
-        success: false,
-        error: error.message,
-        message: 'Workflow validation failed'
-      };
-    }
-  },
-
-  exportWorkflow: async (workflowId, format = 'json') => {
-    try {
-      const response = await apiClient.get(`${WORKFLOW_BASE_URL}/export/${workflowId}?format=${format}`);
-      return {
-        success: true,
-        data: response.data,
-        message: 'Workflow exported successfully'
-      };
-    } catch (error) {
-      console.error('Error exporting workflow:', error);
-      return {
-        success: false,
-        error: error.message,
-        message: 'Failed to export workflow'
-      };
-    }
-  },
-
-  importWorkflow: async (workflowFile) => {
-    try {
-      const formData = new FormData();
-      formData.append('workflow', workflowFile);
-      
-      const response = await apiClient.post(`${WORKFLOW_BASE_URL}/import`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      
-      return {
-        success: true,
-        data: response.data,
-        message: 'Workflow imported successfully'
-      };
-    } catch (error) {
-      console.error('Error importing workflow:', error);
-      return {
-        success: false,
-        error: error.message,
-        message: 'Failed to import workflow'
-      };
-    }
-  },
-
   // ===== HEALTH CHECK =====
   healthCheck: async () => {
     try {
-      const response = await apiClient.get(`${BASE_URL}/health`);
+      const auth = getAuthFromStorage();
+      
+      if (!auth.accessToken) {
+        throw new Error('No authentication token available');
+      }
+
+      const response = await apiClient.get(
+        'http://10.10.10.27:8081/imprint/health',
+        {
+          headers: {
+            'Authorization': `Bearer ${auth.accessToken}`,
+          },
+        }
+      );
+      
       return {
         success: true,
         data: response.data,

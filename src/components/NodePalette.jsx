@@ -27,8 +27,11 @@ const NodePalette = ({ onDragStart, onWorkflowSelect }) => {
   }, []);
 
   const handleWorkflowClick = async (workflowName) => {
-    if (selectedWorkflow?.workflowId === workflow.workflowId) {
+    console.log('Workflow clicked:', workflow);
+    
+    if (selectedWorkflow && selectedWorkflow.workflowId === workflow.workflowId) {
       // If clicking the same workflow, deselect it
+      console.log('Deselecting workflow');
       setSelectedWorkflow(null);
       setWorkflowJson(null);
       if (onWorkflowSelect) {
@@ -40,25 +43,33 @@ const NodePalette = ({ onDragStart, onWorkflowSelect }) => {
     const auth = getAuthFromStorage();
     
     if (!auth.accessToken) {
-      console.log('No authentication token available');
+      console.error('No authentication token available for workflow selection');
       return;
     }
     
+    console.log('Fetching workflow JSON for ID:', workflow.workflowId);
     setIsLoading(true);
     setSelectedWorkflow(workflow);
-    const data = await api.getWorkflowJson(workflow.workflowId);
     
-    // Add workflow name to the data if it's missing
-    if (data) {
-      data.workflowName = workflow.workflowName;
-      data.workflowId = workflow.workflowId;
+    try {
+      const data = await api.getWorkflowJson(workflow.workflowId);
+      console.log('Received workflow data:', data);
+      
+      // Add workflow metadata to the data if it's missing
+      if (data) {
+        data.workflowName = data.workflowName || workflow.workflowName;
+        data.workflowId = data.workflowId || workflow.workflowId;
+      }
+      
+      setWorkflowJson(data);
+      if (onWorkflowSelect) {
+        onWorkflowSelect(data);
+      }
+    } catch (error) {
+      console.error('Error loading workflow:', error);
+      setSelectedWorkflow(null);
     }
-    
-    setWorkflowJson(data);
-    if (onWorkflowSelect) {
-      onWorkflowSelect(data);
-    }
-    console.log("Workflow JSON:", data);
+
     setIsLoading(false);
   };
 

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { getAuthFromUrl, saveAuthToStorage, getAuthFromStorage, isAuthenticated } from './utils/auth';
+import { getAuthFromUrl, saveAuthToStorage, getAuthFromStorage, isAuthenticated, clearAuthFromStorage } from './utils/auth';
 import LoginPage from './components/LoginPage';
 import {
   ReactFlow,
@@ -425,25 +425,31 @@ function App() {
   useEffect(() => {
     // First check URL parameters
     const urlAuth = getAuthFromUrl();
-    if (urlAuth.accessToken && urlAuth.userId && urlAuth.companyId) {
+    console.log('URL Auth data:', urlAuth);
+    
+    if (urlAuth.accessToken && urlAuth.useId && urlAuth.companyId) {
       // Save to localStorage and set as authenticated
       saveAuthToStorage(urlAuth);
       setAuthData(urlAuth);
       setUser({
         isAuthenticated: true,
-        userId: urlAuth.userId,
+        userId: urlAuth.useId,
         companyId: urlAuth.companyId
       });
+      console.log('Authentication set from URL parameters');
     } else {
       // Check localStorage for existing auth
       const storedAuth = getAuthFromStorage();
+      console.log('Stored Auth data:', storedAuth);
+      
       if (isAuthenticated()) {
         setAuthData(storedAuth);
         setUser({
           isAuthenticated: true,
-          userId: storedAuth.userId,
+          userId: storedAuth.useId,
           companyId: storedAuth.companyId
         });
+        console.log('Authentication set from localStorage');
       }
     }
   }, []);
@@ -455,7 +461,6 @@ function App() {
 
   const handleLogout = () => {
     // Clear authentication data
-    const { clearAuthFromStorage } = require('./utils/auth');
     clearAuthFromStorage();
     setAuthData(null);
     setUser(null);
@@ -493,7 +498,7 @@ function App() {
                   <div className="flex items-center gap-3 px-4 py-2 bg-slate-50 border-2 border-slate-300">
                     <User className="w-4 h-4 text-slate-600" />
                     <span className="text-sm font-medium text-slate-700">
-                      Welcome, User {user.userId}
+                      User ID: {user.userId} | Company: {user.companyId}
                     </span>
                   </div>
                   <button

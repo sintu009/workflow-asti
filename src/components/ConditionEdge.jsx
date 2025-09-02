@@ -50,13 +50,15 @@ const ConditionEdge = ({
   const fetchConditions = async () => {
     try {
       const auth = getAuthFromStorage();
+      console.log('Fetching conditions with auth:', auth);
       
       if (!auth.accessToken) {
-        console.log('No authentication token available');
+        console.error('No authentication token available for conditions');
         return;
       }
       
       const conditionsData = await api.getAllConditions();
+      console.log('Fetched conditions for edge:', conditionsData);
       setConditions(conditionsData || []);
       setError(null);
     } catch (error) {

@@ -50,12 +50,17 @@ const PropertiesPanel = ({ selectedNode, onNodeUpdate, onClose }) => {
       console.log('Fetched node details:', nodeDetails);
       console.log('Fetched conditions:', conditionsData);
 
-      setTasks(nodeDetails.tasks);
-      setGateways(nodeDetails.gateways);
+      setTasks(nodeDetails.tasks || []);
+      setGateways(nodeDetails.gateways || []);
       setEvents(nodeDetails.events || []);
-      setConditions(conditionsData);
+      setConditions(conditionsData || []);
     } catch (error) {
       console.error("Error fetching data:", error);
+      // Set empty arrays on error to prevent UI issues
+      setTasks([]);
+      setGateways([]);
+      setEvents([]);
+      setConditions([]);
     }
   };
 

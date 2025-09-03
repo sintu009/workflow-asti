@@ -54,7 +54,7 @@ export const api = {
       }
 
       const response = await apiClient.get(
-        `http://10.10.10.27:8081/imprint/workflows/getAllConditions?companyId=${auth.companyId}`,
+        `http://10.10.10.27:8081/imprint/workflows/conditions`,
         {
           headers: {
             Authorization: `Bearer ${auth.accessToken}`,
@@ -62,6 +62,7 @@ export const api = {
         }
       );
       
+      console.log('Conditions API response:', response.data);
       return response.data.conditions || [];
     } catch (error) {
       console.error('Error fetching conditions:', error);

@@ -54,16 +54,25 @@ const ConditionEdge = ({
       
       if (!auth.accessToken) {
         console.error('No authentication token available for conditions');
+        setError('Authentication required to load conditions');
         return;
       }
       
       const conditionsData = await api.getAllConditions();
       console.log('Fetched conditions for edge:', conditionsData);
-      setConditions(conditionsData || []);
+      
+      if (Array.isArray(conditionsData) && conditionsData.length > 0) {
+        setConditions(conditionsData);
+        console.log('Set conditions:', conditionsData);
+      } else {
+        console.warn('No conditions received or invalid format:', conditionsData);
+        setConditions([]);
+      }
       setError(null);
     } catch (error) {
       console.error('Error fetching conditions:', error);
       setError('Failed to load conditions. Please try again.');
+      setConditions([]);
     }
   };
 
@@ -171,18 +180,27 @@ const ConditionEdge = ({
                 <select
                   value={selectedCondition?.conditionKey || ''}
                   onChange={(e) => {
+                    console.log('Selected condition key:', e.target.value);
                     const condition = conditions.find((c) => c.conditionKey === e.target.value);
+                    console.log('Found condition:', condition);
                     setSelectedCondition(condition || null);
                   }}
                   className="w-full px-2 py-2 text-xs border-2 border-slate-300 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
                 >
                   <option value="">Choose a condition...</option>
-                  {conditions.map((condition) => (
-                    <option key={condition.conditionKey || Math.random()} value={condition.conditionKey}>
+                  {conditions.length > 0 ? conditions.map((condition) => (
+                    <option key={condition.conditionKey} value={condition.conditionKey}>
                       {condition.conditionName || 'Unnamed Condition'}
                     </option>
-                  ))}
+                  )) : (
+                    <option value="" disabled>No conditions available</option>
+                  )}
                 </select>
+                {conditions.length === 0 && (
+                  <div className="mt-1 text-xs text-red-600">
+                    No conditions loaded. Check authentication.
+                  </div>
+                )}
               </div>
 
               {selectedCondition && (

@@ -2,9 +2,60 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { getBezierPath } from '@xyflow/react';
 import { Plus, Settings, X, Check } from 'lucide-react';
-import { api } from '../services/api';
-import { getAuthFromStorage } from '../utils/auth';
 
+// Global cache for conditions to avoid repeated API calls
+let conditionsCache = null;
+let conditionsCachePromise = null;
+
+const fetchConditionsOnce = async () => {
+  if (conditionsCache) {
+    return conditionsCache;
+  }
+  
+  if (conditionsCachePromise) {
+    return conditionsCachePromise;
+  }
+  
+  conditionsCachePromise = (async () => {
+    try {
+      const { api } = await import('../services/api');
+      const { getAuthFromStorage } = await import('../utils/auth');
+      
+      const auth = getAuthFromStorage();
+      console.log('Fetching conditions once with auth:', auth);
+      
+      if (!auth.accessToken) {
+        console.error('No authentication token available for conditions');
+        throw new Error('Authentication required to load conditions');
+      }
+      
+      const conditionsData = await api.getAllConditions();
+      console.log('Fetched conditions (cached):', conditionsData);
+      
+      if (Array.isArray(conditionsData) && conditionsData.length > 0) {
+        conditionsCache = conditionsData;
+        return conditionsData;
+      } else {
+        console.warn('No conditions received or invalid format:', conditionsData);
+        conditionsCache = [];
+        return [];
+      }
+    } catch (error) {
+      console.error('Error fetching conditions:', error);
+      conditionsCache = [];
+      conditionsCachePromise = null; // Reset promise on error to allow retry
+      throw error;
+    }
+  })();
+  
+  return conditionsCachePromise;
+};
+
+// Function to clear cache when needed (e.g., on logout)
+export const clearConditionsCache = () => {
+  conditionsCache = null;
+  conditionsCachePromise = null;
+};
 const ConditionEdge = ({
   id,
   sourceX,
@@ -31,9 +82,12 @@ const ConditionEdge = ({
     targetPosition,
   });
 
+  // Load conditions only when modal is opened
   useEffect(() => {
-    fetchConditions();
-  }, []);
+    if (showConditionModal && conditions.length === 0) {
+      loadConditions();
+    }
+  }, [showConditionModal]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -47,27 +101,13 @@ const ConditionEdge = ({
     };
   }, []);
 
-  const fetchConditions = async () => {
+  const loadConditions = async () => {
     try {
-      const auth = getAuthFromStorage();
-      console.log('Fetching conditions with auth:', auth);
+      console.log('Loading conditions from cache...');
+      const conditionsData = await fetchConditionsOnce();
       
-      if (!auth.accessToken) {
-        console.error('No authentication token available for conditions');
-        setError('Authentication required to load conditions');
-        return;
-      }
-      
-      const conditionsData = await api.getAllConditions();
-      console.log('Fetched conditions for edge:', conditionsData);
-      
-      if (Array.isArray(conditionsData) && conditionsData.length > 0) {
-        setConditions(conditionsData);
-        console.log('Set conditions:', conditionsData);
-      } else {
-        console.warn('No conditions received or invalid format:', conditionsData);
-        setConditions([]);
-      }
+      setConditions(conditionsData);
+      console.log('Set conditions from cache:', conditionsData);
       setError(null);
     } catch (error) {
       console.error('Error fetching conditions:', error);
@@ -78,6 +118,10 @@ const ConditionEdge = ({
 
   const handleAddCondition = (e) => {
     e.stopPropagation();
+    // Load conditions when opening modal if not already loaded
+    if (conditions.length === 0) {
+      loadConditions();
+    }
     setShowConditionModal(true);
   };
 

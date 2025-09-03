@@ -1,3 +1,5 @@
+import { clearConditionsCache } from '../components/ConditionEdge';
+
 // Authentication utility functions
 export const getAuthFromUrl = () => {
   const urlParams = new URLSearchParams(window.location.search);
@@ -40,6 +42,14 @@ export const clearAuthFromStorage = () => {
   localStorage.removeItem('access_token');
   localStorage.removeItem('user_id');
   localStorage.removeItem('company_id');
+  
+  // Clear conditions cache when auth is cleared
+  try {
+    clearConditionsCache();
+  } catch (error) {
+    // Ignore error if cache clearing fails
+    console.warn('Could not clear conditions cache:', error);
+  }
 };
 
 export const isAuthenticated = () => {

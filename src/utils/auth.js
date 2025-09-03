@@ -3,7 +3,7 @@ export const getAuthFromUrl = () => {
   const urlParams = new URLSearchParams(window.location.search);
   const authData = {
     accessToken: urlParams.get('access_token'),
-    useId: urlParams.get('useId'),
+    userId: urlParams.get('useId'), // Note: URL param is 'useId' but we store as 'userId'
     companyId: urlParams.get('companyId')
   };
   
@@ -16,8 +16,8 @@ export const saveAuthToStorage = (authData) => {
   if (authData.accessToken) {
     localStorage.setItem('access_token', authData.accessToken);
   }
-  if (authData.useId) {
-    localStorage.setItem('use_id', authData.useId);
+  if (authData.userId) {
+    localStorage.setItem('user_id', authData.userId);
   }
   if (authData.companyId) {
     localStorage.setItem('company_id', authData.companyId);
@@ -27,7 +27,7 @@ export const saveAuthToStorage = (authData) => {
 export const getAuthFromStorage = () => {
   const authData = {
     accessToken: localStorage.getItem('access_token'),
-    useId: localStorage.getItem('use_id'),
+    userId: localStorage.getItem('user_id'),
     companyId: localStorage.getItem('company_id')
   };
   
@@ -38,13 +38,13 @@ export const getAuthFromStorage = () => {
 export const clearAuthFromStorage = () => {
   console.log('Clearing auth from storage');
   localStorage.removeItem('access_token');
-  localStorage.removeItem('use_id');
+  localStorage.removeItem('user_id');
   localStorage.removeItem('company_id');
 };
 
 export const isAuthenticated = () => {
   const auth = getAuthFromStorage();
-  const isAuth = !!(auth.accessToken && auth.useId && auth.companyId);
+  const isAuth = !!(auth.accessToken && auth.userId && auth.companyId);
   console.log('Is authenticated:', isAuth, auth);
   return isAuth;
 };

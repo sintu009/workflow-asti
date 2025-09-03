@@ -427,13 +427,13 @@ function App() {
     const urlAuth = getAuthFromUrl();
     console.log('URL Auth data:', urlAuth);
     
-    if (urlAuth.accessToken && urlAuth.useId && urlAuth.companyId) {
+    if (urlAuth.accessToken && urlAuth.userId && urlAuth.companyId) {
       // Save to localStorage and set as authenticated
       saveAuthToStorage(urlAuth);
       setAuthData(urlAuth);
       setUser({
         isAuthenticated: true,
-        userId: urlAuth.useId,
+        userId: urlAuth.userId,
         companyId: urlAuth.companyId
       });
       console.log('Authentication set from URL parameters');
@@ -446,7 +446,7 @@ function App() {
         setAuthData(storedAuth);
         setUser({
           isAuthenticated: true,
-          userId: storedAuth.useId,
+          userId: storedAuth.userId,
           companyId: storedAuth.companyId
         });
         console.log('Authentication set from localStorage');

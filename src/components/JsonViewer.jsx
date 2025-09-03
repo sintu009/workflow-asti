@@ -61,10 +61,10 @@ const JsonViewer = ({ nodes, edges, currentWorkflowName = '', isModified = false
       const auth = getAuthFromStorage();
       console.log('Save attempt with auth:', auth);
       
-      if (!auth.accessToken || !auth.useId || !auth.companyId) {
+      if (!auth.accessToken || !auth.userId || !auth.companyId) {
         const missingFields = [];
         if (!auth.accessToken) missingFields.push('access token');
-        if (!auth.useId) missingFields.push('user ID');
+        if (!auth.userId) missingFields.push('user ID');
         if (!auth.companyId) missingFields.push('company ID');
         
         alert(`Authentication required. Missing: ${missingFields.join(', ')}. Please login again.`);

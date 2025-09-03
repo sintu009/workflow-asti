@@ -8,25 +8,38 @@ const NodePalette = ({ onDragStart, onWorkflowSelect }) => {
   const [selectedWorkflow, setSelectedWorkflow] = useState(null);
   const [workflowJson, setWorkflowJson] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchWorkflows = async () => {
       const auth = getAuthFromStorage();
       
       if (!auth.accessToken || !auth.companyId) {
-        console.log('No authentication data available');
+        console.log('No authentication data available for workflows');
+        setError('Authentication required');
         return;
       }
       
+      console.log('Fetching workflows with auth:', auth);
       setIsLoading(true);
-      const data = await api.getAllWorkflows();
-      setWorkflows(data);
+      setError(null);
+      
+      try {
+        const data = await api.getAllWorkflows();
+        console.log('Workflows fetched successfully:', data);
+        setWorkflows(data || []);
+        setError(null);
+      } catch (error) {
+        console.error('Error fetching workflows:', error);
+        setError('Failed to load workflows');
+        setWorkflows([]);
+      }
       setIsLoading(false);
     };
     fetchWorkflows();
   }, []);
 
-  const handleWorkflowClick = async (workflowName) => {
+  const handleWorkflowClick = async (workflow) => {
     console.log('Workflow clicked:', workflow);
     
     if (selectedWorkflow && selectedWorkflow.workflowId === workflow.workflowId) {
@@ -44,12 +57,14 @@ const NodePalette = ({ onDragStart, onWorkflowSelect }) => {
     
     if (!auth.accessToken) {
       console.error('No authentication token available for workflow selection');
+      setError('Authentication required for workflow selection');
       return;
     }
     
     console.log('Fetching workflow JSON for ID:', workflow.workflowId);
     setIsLoading(true);
     setSelectedWorkflow(workflow);
+    setError(null);
     
     try {
       const data = await api.getWorkflowJson(workflow.workflowId);
@@ -65,9 +80,12 @@ const NodePalette = ({ onDragStart, onWorkflowSelect }) => {
       if (onWorkflowSelect) {
         onWorkflowSelect(data);
       }
+      setError(null);
     } catch (error) {
       console.error('Error loading workflow:', error);
+      setError(`Failed to load workflow: ${workflow.workflowName}`);
       setSelectedWorkflow(null);
+      setWorkflowJson(null);
     }
 
     setIsLoading(false);
@@ -174,6 +192,11 @@ const NodePalette = ({ onDragStart, onWorkflowSelect }) => {
         <div className="flex items-center gap-2 mb-4">
           <FolderOpen className="w-4 h-4 text-slate-600" />
           <h4 className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Workflows</h4>
+          {workflows.length > 0 && (
+            <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">
+              {workflows.length}
+            </span>
+          )}
         </div>
         
         {isLoading && (
@@ -183,11 +206,17 @@ const NodePalette = ({ onDragStart, onWorkflowSelect }) => {
           </div>
         )}
         
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border-2 border-red-200">
+            <p className="text-red-700 text-xs">{error}</p>
+          </div>
+        )}
+        
         <div className="space-y-1 max-h-48 overflow-y-auto">
-          {workflows.map((name) => (
+          {workflows.map((workflow) => (
             <div
               key={workflow.workflowId}
-              onClick={() => handleWorkflowClick(workflow.workflowName)}
+              onClick={() => handleWorkflowClick(workflow)}
               className={`group cursor-pointer px-4 py-3 border-2 transition-all duration-200 ${
                 selectedWorkflow?.workflowId === workflow.workflowId 
                   ? "bg-blue-100 border-blue-300 text-blue-900" 
@@ -223,7 +252,7 @@ const NodePalette = ({ onDragStart, onWorkflowSelect }) => {
             <div className="flex items-center justify-between mb-3">
               <h5 className="text-xs font-semibold text-slate-700">Preview</h5>
               <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 border border-slate-300">
-                {selectedWorkflow?.workflowName}
+                ID: {selectedWorkflow?.workflowId} - {selectedWorkflow?.workflowName}
               </span>
             </div>
             <div className="max-h-24 overflow-y-auto">

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Square, Diamond, Circle, Workflow, RefreshCw, Trash2, FolderOpen } from "lucide-react";
+import { Square, Diamond, Circle, Workflow, RefreshCw, Trash2, FolderOpen, Search, RotateCcw } from "lucide-react";
 import { api } from "../services/api";
 import { getAuthFromStorage } from "../utils/auth";
 
@@ -9,36 +9,60 @@ const NodePalette = ({ onDragStart, onWorkflowSelect }) => {
   const [workflowJson, setWorkflowJson] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    const fetchWorkflows = async () => {
-      const auth = getAuthFromStorage();
-      
-      if (!auth.accessToken || !auth.companyId) {
-        console.log('No authentication data available for workflows');
-        setError('Authentication required');
-        return;
-      }
-      
-      console.log('Fetching workflows with auth:', auth);
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        const data = await api.getAllWorkflows();
-        console.log('Workflows fetched successfully:', data);
-        setWorkflows(data || []);
-        setError(null);
-      } catch (error) {
-        console.error('Error fetching workflows:', error);
-        setError('Failed to load workflows');
-        setWorkflows([]);
-      }
-      setIsLoading(false);
-    };
     fetchWorkflows();
   }, []);
 
+  // Filter workflows based on search term
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setFilteredWorkflows(workflows);
+    } else {
+      const filtered = workflows.filter(workflow =>
+        workflow.workflowName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        workflow.workflowId.toString().includes(searchTerm)
+      );
+      setFilteredWorkflows(filtered);
+    }
+  }, [workflows, searchTerm]);
+
+  const fetchWorkflows = async () => {
+    const auth = getAuthFromStorage();
+    
+    if (!auth.accessToken || !auth.companyId) {
+      console.log('No authentication data available for workflows');
+      setError('Authentication required');
+      return;
+    }
+    
+    console.log('Fetching workflows with auth:', auth);
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const data = await api.getAllWorkflows();
+      console.log('Workflows fetched successfully:', data);
+      setWorkflows(data || []);
+      setError(null);
+    } catch (error) {
+      console.error('Error fetching workflows:', error);
+      setError('Failed to load workflows');
+      setWorkflows([]);
+    }
+    setIsLoading(false);
+  };
+
+  const handleRefreshWorkflows = () => {
+    console.log('Refreshing workflows...');
+    setSearchTerm(''); // Clear search when refreshing
+    fetchWorkflows();
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
   const handleWorkflowClick = async (workflow) => {
     console.log('Workflow clicked:', workflow);
     
@@ -189,20 +213,52 @@ const NodePalette = ({ onDragStart, onWorkflowSelect }) => {
 
       {/* Workflows List */}
       <div className="p-4 border-t-2 border-slate-300">
-        <div className="flex items-center gap-2 mb-4">
-          <FolderOpen className="w-4 h-4 text-slate-600" />
-          <h4 className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Workflows</h4>
-          {workflows.length > 0 && (
-            <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">
-              {workflows.length}
-            </span>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <FolderOpen className="w-4 h-4 text-slate-600" />
+            <h4 className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Workflows</h4>
+            {workflows.length > 0 && (
+              <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">
+                {filteredWorkflows.length}/{workflows.length}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={handleRefreshWorkflows}
+            disabled={isLoading}
+            className="p-1 hover:bg-slate-200 border border-slate-300 transition-colors disabled:opacity-50"
+            title="Refresh workflows"
+          >
+            <RotateCcw className={`w-3 h-3 text-slate-600 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
+        
+        {/* Search Input */}
+        <div className="mb-3 relative">
+          <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+            <Search className="w-3 h-3 text-slate-400" />
+          </div>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={handleSearchChange}
+            placeholder="Search workflows..."
+            className="w-full pl-7 pr-3 py-2 text-xs border-2 border-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute inset-y-0 right-0 pr-2 flex items-center"
+            >
+              <span className="w-3 h-3 text-slate-400 hover:text-slate-600 cursor-pointer">×</span>
+            </button>
           )}
         </div>
         
         {isLoading && (
           <div className="flex items-center gap-2 text-xs text-slate-500 mb-4">
             <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin"></div>
-            Loading workflows...
+            {searchTerm ? 'Searching...' : 'Loading workflows...'}
           </div>
         )}
         
@@ -213,7 +269,7 @@ const NodePalette = ({ onDragStart, onWorkflowSelect }) => {
         )}
         
         <div className="space-y-1 max-h-48 overflow-y-auto">
-          {workflows.map((workflow) => (
+          {filteredWorkflows.map((workflow) => (
             <div
               key={workflow.workflowId}
               onClick={() => handleWorkflowClick(workflow)}
@@ -235,6 +291,19 @@ const NodePalette = ({ onDragStart, onWorkflowSelect }) => {
               </div>
             </div>
           ))}
+          
+          {filteredWorkflows.length === 0 && workflows.length > 0 && !isLoading && (
+            <div className="text-center py-8 text-slate-500">
+              <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p className="text-xs">No workflows match "{searchTerm}"</p>
+              <button
+                onClick={() => setSearchTerm('')}
+                className="text-xs text-blue-600 hover:text-blue-800 mt-1"
+              >
+                Clear search
+              </button>
+            </div>
+          )}
           
           {workflows.length === 0 && !isLoading && (
             <div className="text-center py-8 text-slate-500">

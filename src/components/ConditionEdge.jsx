@@ -96,6 +96,13 @@ const ConditionEdge = ({
     setShowConditionModal(false);
   };
 
+  // Update selectedCondition when data changes (for workflow import)
+  React.useEffect(() => {
+    if (data?.condition && !selectedCondition) {
+      console.log('Setting condition from imported data:', data.condition);
+      setSelectedCondition(data.condition);
+    }
+  }, [data?.condition, selectedCondition]);
   return (
     <>
       <path

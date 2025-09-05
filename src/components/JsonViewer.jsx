@@ -38,9 +38,11 @@ const JsonViewer = ({ nodes, edges, currentWorkflowName = '', isModified = false
         }),
         ...(node.data.event && Object.keys(node.data.event).length > 0 && {
           event: {
+            key: node.data.event.key,
             eventType: node.data.event.type,
             eventName: node.data.event.eventName,
-            timeDuration: node.data.event.timeDuration
+            timeDuration: node.data.event.timeDuration,
+            name: node.data.event.name
           }
         })
       }
@@ -51,7 +53,12 @@ const JsonViewer = ({ nodes, edges, currentWorkflowName = '', isModified = false
       target: edge.target,
       type: edge.type,
       ...(edge.data?.condition && {
-        condition: edge.data.condition
+        condition: {
+          conditionKey: edge.data.condition.conditionKey,
+          conditionName: edge.data.condition.conditionName,
+          conditionExpression: edge.data.condition.conditionExpression,
+          description: edge.data.condition.description
+        }
       })
     }))
   };

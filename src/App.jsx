@@ -129,27 +129,125 @@ function WorkflowBuilder() {
 
     if (workflowJson.nodes && workflowJson.edges) {
       // Direct nodes/edges format
-      loadedNodes = workflowJson.nodes.map(node => ({
-        ...node,
-        id: node.id || getId(), // Ensure each node has an ID
-      }));
-      loadedEdges = workflowJson.edges.map(edge => ({
-        ...edge,
-        id: edge.id || `edge_${edge.source}_${edge.target}`, // Ensure each edge has an ID
-      }));
+      loadedNodes = workflowJson.nodes.map(node => {
+        const restoredNode = {
+          ...node,
+          id: node.id || getId(),
+          data: {
+            ...node.data,
+            // Restore task configuration
+            ...(node.data.task && {
+              selectedTask: {
+                key: node.data.task.key,
+                name: node.data.task.name,
+                type: node.data.task.type
+              }
+            }),
+            // Restore gateway configuration
+            ...(node.data.gateway && {
+              selectedGateway: {
+                key: node.data.gateway.key,
+                name: node.data.gateway.name,
+                type: node.data.gateway.type
+              }
+            }),
+            // Restore event configuration
+            ...(node.data.event && {
+              event: {
+                key: node.data.event.key || node.data.event.eventType,
+                type: node.data.event.eventType,
+                eventName: node.data.event.eventName,
+                timeDuration: node.data.event.timeDuration,
+                name: node.data.event.eventName
+              }
+            })
+          }
+        };
+        console.log('Restored node:', restoredNode);
+        return restoredNode;
+      });
+      
+      loadedEdges = workflowJson.edges.map(edge => {
+        const restoredEdge = {
+          ...edge,
+          id: edge.id || `edge_${edge.source}_${edge.target}`,
+          // Restore condition configuration
+          data: edge.condition ? {
+            condition: {
+              conditionKey: edge.condition.conditionKey || edge.condition,
+              conditionName: edge.condition.conditionName,
+              conditionExpression: edge.condition.conditionExpression,
+              description: edge.condition.description
+            }
+          } : edge.data
+        };
+        console.log('Restored edge:', restoredEdge);
+        return restoredEdge;
+      });
       workflowName = workflowJson.workflowName || '';
     } else if (workflowJson.clientId && workflowJson.workflowName) {
       // Full workflow format with clientId
-      loadedNodes = (workflowJson.nodes || []).map(node => ({
-        ...node,
-        id: node.id || getId(),
-      }));
-      loadedEdges = (workflowJson.edges || []).map(edge => ({
-        ...edge,
-        id: edge.id || `edge_${edge.source}_${edge.target}`,
-      }));
+      loadedNodes = (workflowJson.nodes || []).map(node => {
+        const restoredNode = {
+          ...node,
+          id: node.id || getId(),
+          data: {
+            ...node.data,
+            // Restore task configuration
+            ...(node.data.task && {
+              selectedTask: {
+                key: node.data.task.key,
+                name: node.data.task.name,
+                type: node.data.task.type
+              }
+            }),
+            // Restore gateway configuration
+            ...(node.data.gateway && {
+              selectedGateway: {
+                key: node.data.gateway.key,
+                name: node.data.gateway.name,
+                type: node.data.gateway.type
+              }
+            }),
+            // Restore event configuration
+            ...(node.data.event && {
+              event: {
+                key: node.data.event.key || node.data.event.eventType,
+                type: node.data.event.eventType,
+                eventName: node.data.event.eventName,
+                timeDuration: node.data.event.timeDuration,
+                name: node.data.event.eventName
+              }
+            })
+          }
+        };
+        return restoredNode;
+      });
+      
+      loadedEdges = (workflowJson.edges || []).map(edge => {
+        const restoredEdge = {
+          ...edge,
+          id: edge.id || `edge_${edge.source}_${edge.target}`,
+          // Restore condition configuration
+          data: edge.condition ? {
+            condition: {
+              conditionKey: edge.condition.conditionKey || edge.condition,
+              conditionName: edge.condition.conditionName,
+              conditionExpression: edge.condition.conditionExpression,
+              description: edge.condition.description
+            }
+          } : edge.data
+        };
+        return restoredEdge;
+      });
       workflowName = workflowJson.workflowName;
     }
+
+    console.log('Loading workflow with restored configurations:', {
+      nodes: loadedNodes,
+      edges: loadedEdges,
+      workflowName
+    });
 
     // Update node counter to prevent ID conflicts
     const maxNodeId = loadedNodes.reduce((max, node) => {

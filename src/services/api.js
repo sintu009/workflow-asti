@@ -48,13 +48,13 @@ export const api = {
     try {
       const auth = getAuthFromStorage();
       
-      if (!auth.accessToken || !auth.companyId) {
+      if (!auth.accessToken) {
         console.error('Missing authentication data for conditions');
         return [];
       }
 
       const response = await apiClient.get(
-        `http://10.10.10.27:8081/imprint/workflows/conditions`,
+        'http://10.10.10.27:8081/imprint/workflows/conditions',
         {
           headers: {
             Authorization: `Bearer ${auth.accessToken}`,

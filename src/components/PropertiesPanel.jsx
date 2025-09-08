@@ -15,6 +15,9 @@ const PropertiesPanel = ({ selectedNode, onNodeUpdate, onClose }) => {
   const [event, setEvent] = useState({});
   const [showConditionModal, setShowConditionModal] = useState(false);
   const [productEmployeeMappings, setProductEmployeeMappings] = useState([]);
+  const [selectedProductId, setSelectedProductId] = useState('');
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
+  const [editingMappingId, setEditingMappingId] = useState(null);
 
   const onNodeDelete = () => {
     if (selectedNode && window.confirm(`Are you sure you want to delete this ${selectedNode.type} node?`)) {
@@ -117,6 +120,7 @@ const PropertiesPanel = ({ selectedNode, onNodeUpdate, onClose }) => {
         if (field === 'productId') {
           const product = products.find(p => p.productID.toString() === value);
           updated.productName = product ? product.productname : '';
+          updated.productAmount = product ? product.amount : '';
         }
         if (field === 'employeeId') {
           const employee = employees.find(e => e.emp_id === value);
@@ -129,6 +133,57 @@ const PropertiesPanel = ({ selectedNode, onNodeUpdate, onClose }) => {
     }));
   };
 
+  const handleAddMapping = () => {
+    if (!selectedProductId || !selectedEmployeeId) return;
+
+    const product = products.find(p => p.productID.toString() === selectedProductId);
+    const employee = employees.find(e => e.emp_id === selectedEmployeeId);
+
+    if (!product || !employee) return;
+
+    // Check if mapping already exists
+    const existingMapping = productEmployeeMappings.find(
+      mapping => mapping.productId === selectedProductId && mapping.employeeId === selectedEmployeeId
+    );
+
+    if (existingMapping) {
+      alert('This product-employee mapping already exists!');
+      return;
+    }
+
+    const newMapping = {
+      id: Date.now(),
+      productId: selectedProductId,
+      employeeId: selectedEmployeeId,
+      productName: product.productname,
+      productAmount: product.amount,
+      employeeName: employee.full_name
+    };
+
+    setProductEmployeeMappings(prev => [...prev, newMapping]);
+    
+    // Clear selections
+    setSelectedProductId('');
+    setSelectedEmployeeId('');
+  };
+
+  const handleEditMapping = (mappingId) => {
+    const mapping = productEmployeeMappings.find(m => m.id === mappingId);
+    if (mapping) {
+      setSelectedProductId(mapping.productId);
+      setSelectedEmployeeId(mapping.employeeId);
+      setEditingMappingId(mappingId);
+      
+      // Remove the mapping being edited
+      setProductEmployeeMappings(prev => prev.filter(m => m.id !== mappingId));
+    }
+  };
+
+  const handleDeleteMapping = (mappingId) => {
+    if (window.confirm('Are you sure you want to delete this mapping?')) {
+      setProductEmployeeMappings(prev => prev.filter(mapping => mapping.id !== mappingId));
+    }
+  };
   const isAssignLeadTask = selectedTask?.name === 'Assign Lead' && selectedTask?.type === 'ServiceTask';
 
   if (!selectedNode) return null;
@@ -167,6 +222,128 @@ const PropertiesPanel = ({ selectedNode, onNodeUpdate, onClose }) => {
             </div>
           </div>
 
+          {/* Product-Employee Mapping Section - Only for Assign Lead Task */}
+          {isAssignLeadTask && (
+            <div className="pt-6 border-t-2 border-slate-300 space-y-4">
+              <div className="flex items-center gap-2 mb-4">
+                <Package className="w-4 h-4 text-purple-600" />
+                <h4 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
+                  Product-Employee Assignment
+                </h4>
+              </div>
+
+              {/* Dropdowns and Add Button */}
+              <div className="space-y-3 p-4 bg-slate-50 border-2 border-slate-300">
+                <div className="grid grid-cols-1 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      <Package className="w-3 h-3 inline mr-1" />
+                      Select Product
+                    </label>
+                    <select
+                      value={selectedProductId}
+                      onChange={(e) => setSelectedProductId(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border-2 border-slate-300 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
+                    >
+                      <option value="">Choose Product...</option>
+                      {products.map((product) => (
+                        <option key={product.productID} value={product.productID}>
+                          {product.productname} (₹{product.amount})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      <User className="w-3 h-3 inline mr-1" />
+                      Select Employee
+                    </label>
+                    <select
+                      value={selectedEmployeeId}
+                      onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border-2 border-slate-300 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
+                    >
+                      <option value="">Choose Employee...</option>
+                      {employees.map((employee) => (
+                        <option key={employee.emp_id} value={employee.emp_id}>
+                          {employee.full_name} ({employee.emp_id})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleAddMapping}
+                  disabled={!selectedProductId || !selectedEmployeeId}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white border-2 border-purple-700 hover:bg-purple-700 disabled:bg-slate-400 disabled:border-slate-500 disabled:cursor-not-allowed transition-all duration-200 font-semibold text-sm"
+                >
+                  <Check className="w-4 h-4" />
+                  Add Mapping
+                </button>
+              </div>
+
+              {/* Mappings Table */}
+              <div className="space-y-3">
+                <h5 className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
+                  Current Mappings ({productEmployeeMappings.length})
+                </h5>
+                
+                {productEmployeeMappings.length > 0 ? (
+                  <div className="border-2 border-slate-300 overflow-hidden">
+                    <table className="w-full text-xs">
+                      <thead className="bg-slate-100 border-b-2 border-slate-300">
+                        <tr>
+                          <th className="px-3 py-2 text-left font-semibold text-slate-700">Product</th>
+                          <th className="px-3 py-2 text-left font-semibold text-slate-700">Employee</th>
+                          <th className="px-3 py-2 text-center font-semibold text-slate-700">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {productEmployeeMappings.map((mapping, index) => (
+                          <tr key={mapping.id} className={`border-b border-slate-200 ${index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
+                            <td className="px-3 py-2">
+                              <div className="font-medium text-slate-800">{mapping.productName}</div>
+                              <div className="text-slate-500">₹{mapping.productAmount} (ID: {mapping.productId})</div>
+                            </td>
+                            <td className="px-3 py-2">
+                              <div className="font-medium text-slate-800">{mapping.employeeName}</div>
+                              <div className="text-slate-500">ID: {mapping.employeeId}</div>
+                            </td>
+                            <td className="px-3 py-2">
+                              <div className="flex items-center justify-center gap-1">
+                                <button
+                                  onClick={() => handleEditMapping(mapping.id)}
+                                  className="p-1 text-blue-600 hover:bg-blue-100 border border-blue-300 transition-colors"
+                                  title="Edit mapping"
+                                >
+                                  <Settings className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteMapping(mapping.id)}
+                                  className="p-1 text-red-600 hover:bg-red-100 border border-red-300 transition-colors"
+                                  title="Delete mapping"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-slate-500 border-2 border-slate-300 bg-slate-50">
+                    <Package className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-xs">No product-employee mappings</p>
+                    <p className="text-xs">Select product and employee above to add mapping</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
           {/* Task Configuration */}
           {selectedNode.type === "task" && (
             <div className="space-y-4">

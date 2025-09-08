@@ -203,6 +203,102 @@ const PropertiesPanel = ({ selectedNode, onNodeUpdate, onClose }) => {
                   </div>
                 )}
               </div>
+
+              {/* Product-Employee Mapping for Assign Lead Task */}
+              {isAssignLeadTask && (
+                <div className="space-y-4 mt-6 pt-6 border-t-2 border-slate-300">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <Package className="w-4 h-4 text-blue-600" />
+                      <h4 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
+                        Product-Employee Mapping
+                      </h4>
+                    </div>
+                    <button
+                      onClick={addProductEmployeeMapping}
+                      className="flex items-center gap-1 px-2 py-1 bg-blue-600 text-white border-2 border-blue-700 hover:bg-blue-700 transition-colors duration-200 text-xs"
+                    >
+                      <Plus className="w-3 h-3" />
+                      Add
+                    </button>
+                  </div>
+
+                  <div className="space-y-3 max-h-64 overflow-y-auto">
+                    {productEmployeeMappings.map((mapping) => (
+                      <div key={mapping.id} className="p-3 bg-slate-50 border-2 border-slate-300 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-slate-600">Mapping #{mapping.id}</span>
+                          <button
+                            onClick={() => removeProductEmployeeMapping(mapping.id)}
+                            className="p-1 text-red-600 hover:bg-red-100 border border-red-300 transition-colors"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 gap-3">
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1">
+                              <Package className="w-3 h-3 inline mr-1" />
+                              Product
+                            </label>
+                            <select
+                              value={mapping.productId}
+                              onChange={(e) => updateProductEmployeeMapping(mapping.id, 'productId', e.target.value)}
+                              className="w-full px-2 py-2 text-xs border-2 border-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                            >
+                              <option value="">Select Product...</option>
+                              {products.map((product) => (
+                                <option key={product.productID} value={product.productID}>
+                                  {product.productname} (₹{product.amount})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1">
+                              <User className="w-3 h-3 inline mr-1" />
+                              Employee
+                            </label>
+                            <select
+                              value={mapping.employeeId}
+                              onChange={(e) => updateProductEmployeeMapping(mapping.id, 'employeeId', e.target.value)}
+                              className="w-full px-2 py-2 text-xs border-2 border-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                            >
+                              <option value="">Select Employee...</option>
+                              {employees.map((employee) => (
+                                <option key={employee.emp_id} value={employee.emp_id}>
+                                  {employee.full_name} ({employee.emp_id})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                        
+                        {mapping.productName && mapping.employeeName && (
+                          <div className="p-2 bg-blue-50 border-2 border-blue-300">
+                            <div className="text-xs">
+                              <div className="font-medium text-blue-900">Selected Mapping:</div>
+                              <div className="text-blue-700">
+                                {mapping.productName} → {mapping.employeeName}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    
+                    {productEmployeeMappings.length === 0 && (
+                      <div className="text-center py-6 text-slate-500">
+                        <Package className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-xs">No product-employee mappings</p>
+                        <p className="text-xs">Click "Add" to create a mapping</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

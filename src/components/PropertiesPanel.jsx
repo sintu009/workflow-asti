@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { api } from "../services/api";
 import { getAuthFromStorage } from "../utils/auth";
-import { X, Save, Trash2, Settings, Tag, Clock, Type } from "lucide-react";
+import { X, Save, Trash2, Settings, Tag, Clock, Type, Plus, Minus, User, Package } from "lucide-react";
 
 const PropertiesPanel = ({ selectedNode, onNodeUpdate, onClose }) => {
   const [tasks, setTasks] = useState([]);
   const [gateways, setGateways] = useState([]);
   const [events, setEvents] = useState([]);
   const [conditions, setConditions] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [selectedTask, setSelectedTask] = useState(null);
   const [selectedGateway, setSelectedGateway] = useState(null);
   const [event, setEvent] = useState({});
   const [showConditionModal, setShowConditionModal] = useState(false);
+  const [productEmployeeMappings, setProductEmployeeMappings] = useState([]);
 
   const onNodeDelete = () => {
     if (selectedNode && window.confirm(`Are you sure you want to delete this ${selectedNode.type} node?`)) {
@@ -29,6 +32,7 @@ const PropertiesPanel = ({ selectedNode, onNodeUpdate, onClose }) => {
       setSelectedTask(selectedNode.data.selectedTask || null);
       setSelectedGateway(selectedNode.data.selectedGateway || null);
       setEvent(selectedNode.data.event || {});
+      setProductEmployeeMappings(selectedNode.data.productEmployeeMappings || []);
     }
   }, [selectedNode]);
 
@@ -42,18 +46,24 @@ const PropertiesPanel = ({ selectedNode, onNodeUpdate, onClose }) => {
         return;
       }
       
-      const [nodeDetails, conditionsData] = await Promise.all([
+      const [nodeDetails, conditionsData, productsData, employeesData] = await Promise.all([
         api.getNodeDetails(),
         api.getAllConditions(),
+        api.getProductList(),
+        api.getEmployeeList(),
       ]);
 
       console.log('Fetched node details:', nodeDetails);
       console.log('Fetched conditions:', conditionsData);
+      console.log('Fetched products:', productsData);
+      console.log('Fetched employees:', employeesData);
 
       setTasks(nodeDetails.tasks || []);
       setGateways(nodeDetails.gateways || []);
       setEvents(nodeDetails.events || []);
       setConditions(conditionsData || []);
+      setProducts(productsData || []);
+      setEmployees(employeesData || []);
     } catch (error) {
       console.error("Error fetching data:", error);
       // Set empty arrays on error to prevent UI issues
@@ -61,6 +71,8 @@ const PropertiesPanel = ({ selectedNode, onNodeUpdate, onClose }) => {
       setGateways([]);
       setEvents([]);
       setConditions([]);
+      setProducts([]);
+      setEmployees([]);
     }
   };
 
@@ -72,6 +84,7 @@ const PropertiesPanel = ({ selectedNode, onNodeUpdate, onClose }) => {
       selectedTask,
       selectedGateway,
       event,
+      productEmployeeMappings,
     };
 
     onNodeUpdate(selectedNode.id, updatedData);
@@ -83,6 +96,40 @@ const PropertiesPanel = ({ selectedNode, onNodeUpdate, onClose }) => {
       [key]: value,
     }));
   };
+
+  const addProductEmployeeMapping = () => {
+    setProductEmployeeMappings(prev => [
+      ...prev,
+      { id: Date.now(), productId: '', employeeId: '', productName: '', employeeName: '' }
+    ]);
+  };
+
+  const removeProductEmployeeMapping = (id) => {
+    setProductEmployeeMappings(prev => prev.filter(mapping => mapping.id !== id));
+  };
+
+  const updateProductEmployeeMapping = (id, field, value) => {
+    setProductEmployeeMappings(prev => prev.map(mapping => {
+      if (mapping.id === id) {
+        const updated = { ...mapping, [field]: value };
+        
+        // Auto-populate names when IDs are selected
+        if (field === 'productId') {
+          const product = products.find(p => p.productID.toString() === value);
+          updated.productName = product ? product.productname : '';
+        }
+        if (field === 'employeeId') {
+          const employee = employees.find(e => e.emp_id === value);
+          updated.employeeName = employee ? employee.full_name : '';
+        }
+        
+        return updated;
+      }
+      return mapping;
+    }));
+  };
+
+  const isAssignLeadTask = selectedTask?.name === 'Assign Lead' && selectedTask?.type === 'ServiceTask';
 
   if (!selectedNode) return null;
 

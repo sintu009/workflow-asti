@@ -318,6 +318,64 @@ export const api = {
     }
   },
 
+  // ===== PRODUCT APIs =====
+  getProductList: async () => {
+    try {
+      const auth = getAuthFromStorage();
+      
+      if (!auth.accessToken || !auth.companyId) {
+        console.error('Missing authentication data for products');
+        return [];
+      }
+
+      const response = await apiClient.post(
+        'http://10.10.10.27:8081/imprint/loadDropdown/getProductList',
+        `companyID=${auth.companyId}`,
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': `Bearer ${auth.accessToken}`,
+          },
+        }
+      );
+      
+      console.log('Products API response:', response.data);
+      return response.data.productList || [];
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      return [];
+    }
+  },
+
+  // ===== EMPLOYEE APIs =====
+  getEmployeeList: async () => {
+    try {
+      const auth = getAuthFromStorage();
+      
+      if (!auth.accessToken || !auth.userId) {
+        console.error('Missing authentication data for employees');
+        return [];
+      }
+
+      const response = await apiClient.post(
+        'http://10.10.10.27:8081/imprint/employee/employeelistV1',
+        `hr_id=${auth.userId}`,
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': `Bearer ${auth.accessToken}`,
+          },
+        }
+      );
+      
+      console.log('Employees API response:', response.data);
+      return response.data || [];
+    } catch (error) {
+      console.error('Error fetching employees:', error);
+      return [];
+    }
+  },
+
   // ===== AUTHENTICATION APIs =====
   login: async (credentials) => {
     try {
